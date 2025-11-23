@@ -1,0 +1,28 @@
+FROM golang:1 AS dtnd-go-builder
+RUN git clone https://gitlab.uni-marburg.de/fb12/ag-freisleben/projects/dtn7-go.git && \
+    cd dtn7-go && \
+    git switch rec && \
+    go build -race -o /dtnd-go ./cmd/dtnd
+
+
+FROM ubuntu:22.04
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY --from=dtnd-go-builder /dtnd-go /usr/local/bin/dtnd-go
+
+WORKDIR /app
+
+RUN uv python install 3.12
+
+COPY pyproject.toml uv.lock README.md ./
+
+RUN uv sync --no-install-project
+
+COPY rec/ ./rec/
+COPY tests/ ./tests/
+
+RUN mkdir -p /tmp/test_data
+
+
+CMD ["sleep", "infinity"]

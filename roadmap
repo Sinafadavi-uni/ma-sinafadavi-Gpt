@@ -1,0 +1,87 @@
+Phase 1: Decentralized Mapping (Consistent Hashing & Gossip)
+Task 1: Create Basic Hash Ring Structure (use only uhasring library https://github.com/ultrabug/uhashring )
+
+Create a new file rec/dtn/placement/ring.py with a HashRing
+Implement consistent hashing logic to map keys to nodes
+Add virtual nodes support (tokens) for better load distribution
+Write helper methods to find the next N nodes for a given key
+
+Task 2: Build Membership Manager
+
+Create rec/dtn/placement/membership.py for tracking active nodes
+Implement a simple heartbeat system where nodes announce themselves
+Store node states (active, suspected, failed) with timestamps
+Add logic to detect when nodes go offline (timeout-based)
+
+Task 3: Add Gossip Protocol to Nodes
+
+Modify the existing Node base class to include gossip capabilities
+Add periodic gossip messages that share membership info
+Implement a simple gossip handler that merges membership updates
+Make sure brokers and datastores can discover each other through gossip
+
+Task 4: Integrate Hash Ring with Routing
+
+Create a rec/dtn/placement/routing_client.py that uses the hash ring for data placement
+Update broker to use the hash ring when deciding where to store data
+Make datastores aware of which keys they're responsible for
+Test that all nodes calculate the same placement for any given key
+
+Phase 2: Multiple Redundant Copies (Replication)
+Task 5: Add Replication Controller to Broker
+
+Create rec/dtn/placement/replication.py with a ReplicationController class
+Implement logic to write to N datastores (preference list from hash ring)
+Add quorum tracking - wait for W acknowledgments before confirming write
+Store replication metadata (which replicas have which version)
+
+Task 6: Implement Hinted Handoff
+
+Add a hinted handoff queue to the broker for failed writes
+When a datastore is unreachable, store the write in the queue
+Create a background task that retries missed writes when nodes come back
+Add cleanup logic when hints are successfully delivered
+
+Task 7: Update Datastore for Versioning
+
+Modify datastore's storage.py to include version vectors with data
+Change the PUT operation to be idempotent (safe to retry)
+Add logic to compare versions when handling concurrent updates
+Store metadata about when data was last updated
+
+Task 8: Implement Quorum Reads
+
+Update the broker's read path to query R replicas
+Add logic to select the most recent version from responses
+Implement read repair - update stale replicas when detected
+Test different quorum configurations (N=3, W=2, R=2)
+
+Phase 3: Efficient Incremental Recovery (Merkle Trees)
+Task 9: Build Merkle Tree Generator
+
+Create rec/dtn/placement/merkle_tree.py with basic tree building logic
+Map key ranges to tree nodes (aligned with hash ring partitions)
+Implement tree serialization for network exchange
+Add a diff function to compare two trees and find mismatches
+
+Task 10: Add Anti-Entropy Scheduler
+
+Create a scheduler that picks replica pairs for comparison
+Prioritize checking recently recovered nodes
+Add throttling to avoid overwhelming the network
+Keep track of when replicas were last synchronized
+
+Task 11: Implement Repair Protocol
+
+Add repair endpoints to datastore for tree exchange
+Implement the tree comparison protocol (exchange root, then drill down)
+Create a repair executor that fetches only missing keys
+Update replica metadata after successful repairs
+
+Task 12: Integration and Background Tasks
+
+Add background thread in datastores to build Merkle trees periodically
+Integrate anti-entropy with the existing system
+Add monitoring/logging to track repair progress
+Test the full pipeline with simulated failures
+
